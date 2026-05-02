@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+
+# generated types (IMPORTANT for your case)
+src/types/
+
+# logs
+*.log
+logs/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# runtime
+.DS_Store
+*.pid
+
+# bun cache
+.bun/
+bun.lockb
+
+# typescript
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
