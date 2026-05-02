@@ -30,6 +30,7 @@ export const app = new Elysia()
   .use(typeShareEdenElysia({
     route: "/types/app.d.ts",
     path: "./dist/types/src/app.d.ts"
+  .listen(3000)
 }))
 
 export type App = typeof app    // Don't forget to export your App type!
