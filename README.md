@@ -2,15 +2,13 @@
 
 Share Elysia backend type definitions to frontend via HTTP endpoint with auto-generation support.
 
-> **Version 0.1.0** - Now with auto-generate on startup! ✨
-
 ## Features
 
 ✅ **Auto-generate types** - Automatically generate `.d.ts` files when plugin starts  
-✅ **HTTP endpoint** - Serve types through `/types/app.d.ts` route  
+✅ **HTTP endpoint** - Serve types through configurable route  
 ✅ **CLI tools** - Sync or watch types from frontend  
 ✅ **Type-safe** - Full TypeScript support for RPC and monorepo setups  
-✅ **Zero config** - Works out of the box with sensible defaults  
+✅ **Flexible paths** - Works with any project structure  
 
 ## Installation
 
@@ -18,13 +16,26 @@ Share Elysia backend type definitions to frontend via HTTP endpoint with auto-ge
 npm install type-share-eden-elysia
 ```
 
-Requires `elysia` ^1.4.28 and Bun runtime.
+## Quick Start
 
-## Backend Setup
+### Backend
 
-### 1. Configure tsconfig.declarations.json
+1. **Add to Elysia app (e.g., `src/app.ts`):**
 
-Create `tsconfig.declarations.json` in your project root:
+```typescript
+import { Elysia } from 'elysia'
+import { typeShareEdenElysia } from 'type-share-eden-elysia'
+
+export const app = new Elysia()
+  .use(typeShareEdenElysia({
+    route: "/types/app.d.ts",
+    path: "./dist/types/src/app.d.ts"
+}))
+
+export type App = typeof app    // Don't forget to export your App type!
+```
+
+2. **Create `tsconfig.declarations.json`:**
 
 ```json
 {
@@ -41,246 +52,100 @@ Create `tsconfig.declarations.json` in your project root:
   "exclude": ["node_modules", "dist"]
 }
 ```
+- `outDir` : generated `d.ts` files directory target
+- `include` : source files to generate types from (e.g., `["src/app.ts"]`) 
 
-### 2. Add to Elysia App
+3. **Start the backend:**
+
+```bash
+bun run --watch src/app.ts
+```
+
+Types will be served at: `http://localhost:3000/types/app.d.ts`, 
+- `route` is `/types/app.d.ts` by default,
+- file type `path` is `./dist/types/src/app.d.ts` by default
+- If you change `tsconfig.declarations.json` make sure to adjust the `path` based on your needs. 
+
+
+### Frontend
+
+**Sync types once:**
+```bash
+npx type-share-eden-elysia sync http://localhost:3000/types/app.d.ts
+```
+
+**Watch mode (recommended):**
+```bash
+npx type-share-eden-elysia watch http://localhost:3000/types/app.d.ts
+```
+
+Types are saved to `src/types/app.d.ts` and ready to use:
 
 ```typescript
-import { typeShareEdenElysia } from 'type-share-eden-elysia'
+import type { App } from './types/app'
+import { treaty } from '@elysia/eden'
 
-export const app = new Elysia()
-  // ... other middleware
-  .use(typeShareEdenElysia({
-    autoGenerate: true,           // Auto-generate on startup
-    verbose: true,                // Show build progress
-    tsconfigPath: './tsconfig.declarations.json'
-  }))
+const api = treaty<App>('http://localhost:3000')
+const result = await api.api.hello.get()
 ```
 
-### 3. Start Backend
+## Configuration
 
-```bash
-npm run dev
-# or
-bun run --watch src/main.ts
-```
+### Understanding Path Generation
 
-The plugin will:
-1. Generate types from `src/app.ts` → `dist/types/src/app.d.ts`
-2. Serve at `/types/app.d.ts` endpoint
-
-Verify it works:
-```bash
-curl http://localhost:3000/types/app.d.ts
-```
-
-## Frontend Setup
-
-### 1. Install CLI
-
-```bash
-npm install -D type-share-eden-elysia
-```
-
-### 2. Sync Types
-
-**One-time sync:**
-```bash
-npx type-share-eden-elysia sync
-# or custom URL
-npx type-share-eden-elysia sync http://localhost:8000
-```
-
-**Watch mode (recommended for development):**
-```bash
-npx type-share-eden-elysia watch
-```
-
-This creates `src/types/app.d.ts` with all backend types.
-
-### 3. Use Types
-
-```typescript
-import type { App } from './types/app.d.ts'
-
-// Type-safe API calls
-const response = await fetch('/api/endpoint')
-const data: ReturnType<App['GET']['/api/endpoint']> = await response.json()
-```
-
-## Options
+The generated `.d.ts` file location is determined by:
+- **`outDir`** in tsconfig + **`include`** paths = generated file location
+- Example: `outDir: "./dist/types"` + `include: ["src/app.ts"]` = `./dist/types/src/app.d.ts`
 
 ### Plugin Options
 
 ```typescript
 interface TypeShareOptions {
-  /**
-   * Path to .d.ts file to serve
-   * @default './dist/types/src/app.d.ts'
-   */
-  path?: string
-
-  /**
-   * HTTP endpoint route
-   * @default '/types/app.d.ts'
-   */
-  route?: string
-
-  /**
-   * Auto-generate types on startup
-   * @default true
-   */
-  autoGenerate?: boolean
-
-  /**
-   * Path to tsconfig for generation
-   * @default './tsconfig.declarations.json'
-   */
-  tsconfigPath?: string
-
-  /**
-   * Show compilation output
-   * @default false
-   */
-  verbose?: boolean
+  path?: string           // Generated .d.ts file path (default: './dist/types/src/app.d.ts')
+  route?: string          // HTTP route (default: '/types/app.d.ts')
+  autoGenerate?: boolean  // Auto-generate on startup (default: true)
+  tsconfigPath?: string   // tsconfig path (default: './tsconfig.declarations.json')
+  verbose?: boolean       // Show output (default: false)
 }
-```
 
-### CLI Commands
+## CLI Commands
+
+### Basic Usage
 
 ```bash
-# Sync types once
-type-share-eden-elysia sync [url]
+# Sync types once (default output: ./src/types/app.d.ts)
+npx type-share-eden-elysia sync http://localhost:3000/types/app.d.ts
 
-# Watch and auto-sync
-type-share-eden-elysia watch [url]
-
-# URL defaults to http://localhost:3000
+# Watch and auto-sync continuously (default output: ./src/types/app.d.ts)
+npx type-share-eden-elysia watch http://localhost:3000/types/app.d.ts
 ```
 
-## Examples
+### Custom Output Path
 
-### Full Stack Type Safety
-
-**Backend (app.ts):**
-```typescript
-const app = new Elysia()
-  .get('/api/users/:id', ({ params }) => {
-    return { id: params.id, name: 'John' }
-  })
-  .use(typeShareEdenElysia())
-```
-
-**Frontend:**
-```typescript
-import type { App } from './types/app.d.ts'
-
-async function getUser(id: string) {
-  const res = await fetch(`/api/users/${id}`)
-  const user: ReturnType<App['GET']['/api/users/:id']> = await res.json()
-  console.log(user.name) // typed!
-}
-```
-
-### With Environment Config
-
-```typescript
-// Backend
-const isDev = process.env.NODE_ENV === 'development'
-
-app.use(typeShareEdenElysia({
-  autoGenerate: isDev,
-  verbose: isDev,
-  route: process.env.TYPES_ROUTE || '/types/app.d.ts'
-}))
-```
-
-### Multiple Type Endpoints
-
-If you need types for different modules:
-
-```typescript
-app
-  .use(typeShareEdenElysia({
-    path: './dist/types/api.d.ts',
-    route: '/types/api.d.ts'
-  }))
-  .use(typeShareEdenElysia({
-    path: './dist/types/admin.d.ts',
-    route: '/types/admin.d.ts'
-  }))
-```
-
-## Development Workflow
-
-### Quick Start
+Use the `--output` or `-o` flag to specify where types should be saved:
 
 ```bash
-# Terminal 1: Backend (generates types on startup)
-cd backend
-npm run dev
+# Sync with custom output location
+npx type-share-eden-elysia sync http://localhost:3000/types/app.d.ts --output ./types/api.d.ts
 
-# Terminal 2: Frontend (sync types)
-cd frontend
-npm run types:watch
+# Watch with custom output (short form)
+npx type-share-eden-elysia watch http://localhost:3000/types/app.d.ts -o ./shared/types.d.ts
 
-# Terminal 3: Frontend app
-cd frontend
-npm start
+# Different backend sources with custom paths
+npx type-share-eden-elysia sync https://api.example.com/types/main.d.ts --output ./types/main.d.ts
+npx type-share-eden-elysia watch https://api.production.com/types/v1.d.ts --output ./types/production.d.ts
 ```
 
-### With npm Scripts
+### Options
 
-Add to `package.json`:
+| Option | Alias | Description | Default |
+|--------|-------|-------------|---------|
+| `--output` | `-o` | Custom output file path | `./src/types/<filename from URL>` |
 
-```json
-{
-  "scripts": {
-    "types:generate": "tsc -p tsconfig.declarations.json",
-    "types:check": "curl -s http://localhost:3000/types/app.d.ts | head -5"
-  }
-}
-```
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| `Cannot find module tsc` | `npm install typescript` |
-| `Failed to generate types` | Ensure `tsconfig.declarations.json` exists and `src/app.ts` is valid |
-| `Failed to fetch types` | Verify backend is running: `curl http://localhost:3000/health-check` |
-| `Connection refused` | Check CORS: backend must allow `/types/app.d.ts` endpoint |
-| Types not updating | Run `npm run types:watch` in frontend, check backend logs |
-
-## Migration from v0.0.1
-
-If upgrading from v0.0.1:
-
-```bash
-npm update type-share-eden-elysia
-```
-
-Changes:
-- ✨ Auto-generation now enabled by default
-- 🎯 Better error messages and verbose output
-- 📦 Improved CLI with file size info
-- 🐛 Fixed watch mode polling
-
-No code changes needed if using default options!
-
-## Best Practices
-
-1. **Commit `src/types/app.d.ts`** to git for CI/CD consistency
-2. **Use watch mode** during development for real-time type updates
-3. **Generate before build** - add `types:generate` to build script
-4. **Keep app.ts clean** - plugin only exports types from main app definition
-5. **Pin version** - avoid auto-update to prevent type divergence
-
-## Performance Notes
-
-- Type generation is fast (~100ms for typical apps)
-- HTTP serving uses Bun's native file serving
-- CLI watch mode polls every 3 seconds (configurable)
-- No additional memory overhead in production
+**Notes:**
+- The URL must include the full path to the `.d.ts` file endpoint (not just the base URL)
+- If `--output` is not specified, the filename is extracted from the URL path
+- The output directory will be created automatically if it doesn't exist
 
 ## License
 
@@ -289,7 +154,3 @@ MIT
 ## Contributing
 
 Feedback and PRs welcome! 🚀
-
----
-
-**Full setup guide**: See [SETUP_GUIDE.md](../SETUP_GUIDE.md) for detailed step-by-step instructions.

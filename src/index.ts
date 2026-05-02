@@ -33,45 +33,36 @@ interface TypeShareOptions {
 }
 
 /**
- * Creates a route to expose TypeScript declaration files (.d.ts)
- * from the backend through an HTTP endpoint.
+ * Elysia plugin that exposes generated TypeScript types via HTTP endpoint.
  *
- * This is useful for sharing type definitions between backend and frontend
- * in a type-safe RPC or monorepo setup.
+ * Automatically generates `.d.ts` files using tsc on startup and serves them
+ * for frontend consumption. Perfect for type-safe RPC and monorepo setups.
  *
- * Auto-generates types menggunakan tsc ketika plugin dijalankan.
+ * **Important:** The `path` option must match your tsconfig's output location.
+ * - Formula: `{outDir}/{include_path}.d.ts`
+ * - Example: outDir=`./dist/types`, include=`["src/app.ts"]` → path=`./dist/types/src/app.d.ts`
  *
- * @param options - Optional configuration object
- * @param options.path - Path to the generated .d.ts file
- * @default './dist/types/src/app.d.ts'
- *
- * @param options.route - HTTP route where the file will be served
- * @default '/types/app.d.ts'
- *
- * @param options.autoGenerate - Auto-generate types on startup
- * @default true
- *
- * @param options.tsconfigPath - Path to tsconfig for type generation
- * @default './tsconfig.declarations.json'
- *
- * @param options.verbose - Show tsc compilation output
- * @default false
- *
- * @returns An Elysia plugin instance exposing the type file
+ * @param options Configuration options (all optional)
+ * @param options.path Path to generated .d.ts file (@default './dist/types/src/app.d.ts')
+ * @param options.route HTTP route to serve types (@default '/types/app.d.ts')
+ * @param options.autoGenerate Auto-generate on startup (@default true)
+ * @param options.tsconfigPath Path to tsconfig.declarations.json (@default './tsconfig.declarations.json')
+ * @param options.verbose Show tsc output (@default false)
  *
  * @example
  * ```ts
- * typeShareEdenElysia()
+ * // Default: assumes outDir="./dist/types" and include=["src/app.ts"]
+ * app.use(typeShareEdenElysia())
  * ```
  *
  * @example
  * ```ts
- * typeShareEdenElysia({
- *   path: './dist/types/src/app.d.ts',
- *   route: '/api/types',
- *   autoGenerate: true,
- *   verbose: true
- * })
+ * // Custom paths
+ * app.use(typeShareEdenElysia({
+ *   path: './types/src/index.d.ts',
+ *   route: '/types/index',
+ *   tsconfigPath: './tsconfig.types.json'
+ * }))
  * ```
  */
 export const typeShareEdenElysia = (options?: TypeShareOptions) => {
