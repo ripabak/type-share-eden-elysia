@@ -3,12 +3,14 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "dependencies": {
-        "elysia": "^1.4.28",
-      },
       "devDependencies": {
         "@types/bun": "^1.3.13",
+        "@types/node": "^25.6.0",
+        "elysia": "^1.4.28",
         "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "elysia": "^1.4.28",
       },
     },
   },

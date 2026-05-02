@@ -1,6 +1,6 @@
 {
   "name": "type-share-eden-elysia",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Share Elysia types to frontend via HTTP endpoint",
   "author": "ripabak",
   "license": "MIT",
