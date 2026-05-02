@@ -4,29 +4,50 @@ import fs from 'fs'
 
 const [, , command, url = 'http://localhost:3000'] = process.argv
 
+const OUTPUT = './src/types/app.d.ts'
+
 async function sync() {
-    console.log('🔄 Syncing types from:', url)
+    try {
+        console.log('🔄 Syncing types from:', url)
 
-    const res = await fetch(`${url}/types/app.d.ts`)
+        const res = await fetch(`${url}/types/app.d.ts`)
 
-    if (!res.ok) {
-        console.error('❌ Failed to fetch types')
-        process.exit(1)
+        if (!res.ok) {
+            console.error('❌ Failed to fetch types')
+            return
+        }
+
+        const text = await res.text()
+
+        fs.mkdirSync('./src/types', { recursive: true })
+        fs.writeFileSync(OUTPUT, text)
+
+        console.log('✅ Types synced')
+    } catch (err) {
+        console.error('❌ Error:', err)
     }
+}
 
-    const text = await res.text()
+async function watch() {
+    console.log('👀 Watching types from:', url)
 
-    fs.mkdirSync('./src/types', { recursive: true })
-    fs.writeFileSync('./src/types/app.d.ts', text)
+    // initial sync
+    await sync()
 
-    console.log('✅ Types synced')
+    // polling every 3 seconds (simple version)
+    setInterval(async () => {
+        await sync()
+    }, 3000)
 }
 
 if (command === 'sync') {
     sync()
+} else if (command === 'watch') {
+    watch()
 } else {
     console.log(`
 Usage:
-  type-share-eden-elysia sync http://localhost:3000
+  type-share-eden-elysia sync <url>
+  type-share-eden-elysia watch <url>
 `)
 }
