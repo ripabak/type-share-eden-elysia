@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs'
 import { Elysia } from 'elysia'
 
 interface TypeShareOptions {
@@ -79,6 +80,10 @@ export const typeShareEdenElysia = (options?: TypeShareOptions) => {
         try {
             if (verbose) console.log('📝 Generating app types...')
 
+            const mtimeBefore = (() => {
+                try { return statSync(path).mtimeMs } catch { return null }
+            })()
+
             const result = Bun.spawnSync(['tsc', '-p', tsconfigPath], {
                 cwd: process.cwd(),
                 stderr: 'inherit'
@@ -87,7 +92,12 @@ export const typeShareEdenElysia = (options?: TypeShareOptions) => {
             if (result.success) {
                 if (verbose) console.log('✅ Types generated successfully')
             } else {
-                console.error('❌ Failed to generate types')
+                const mtimeAfter = (() => {
+                    try { return statSync(path).mtimeMs } catch { return null }
+                })()
+                if (mtimeBefore === mtimeAfter) {
+                    console.error('❌ Failed to generate types')
+                }
             }
         } catch (error) {
             console.error('❌ Error generating types:', error)
