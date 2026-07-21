@@ -80,19 +80,21 @@ export const typeShareEdenElysia = (options?: TypeShareOptions) => {
         try {
             if (verbose) console.log('📝 Generating app types...')
 
+            const existed = existsSync(path)
             try { unlinkSync(path) } catch {}
 
             const result = Bun.spawnSync(['tsc', '-p', tsconfigPath], {
                 cwd: process.cwd(),
-                stderr: 'inherit'
+                stdout: 'pipe',
+                stderr: 'pipe'
             })
 
-            if (result.success) {
-                if (verbose) console.log('✅ Types generated successfully')
-            } else if (existsSync(path)) {
-                if (verbose) console.log('⚠️  Types generated with warnings')
+            if (existsSync(path)) {
+                console.log(existed ? '✅ Types regenerated' : '✅ Types generated')
             } else {
-                console.error('❌ Failed to generate types')
+                console.log(existed ? '❌ Failed to regenerate types' : '❌ Failed to generate types')
+                const stderr = result.stderr.toString().trim()
+                if (stderr) console.error(stderr)
             }
         } catch (error) {
             console.error('❌ Error generating types:', error)
